@@ -19,10 +19,12 @@ import { MessagingSingleMessageImportCommand } from 'src/modules/messaging/messa
 import { MessagingMessageListFetchCronCommand } from 'src/modules/messaging/message-import-manager/crons/commands/messaging-message-list-fetch.cron.command';
 import { MessagingMessagesImportCronCommand } from 'src/modules/messaging/message-import-manager/crons/commands/messaging-messages-import.cron.command';
 import { MessagingOngoingStaleCronCommand } from 'src/modules/messaging/message-import-manager/crons/commands/messaging-ongoing-stale.cron.command';
+import { MessagingProcessFolderActionsCronCommand } from 'src/modules/messaging/message-import-manager/crons/commands/messaging-process-folder-actions.cron.command';
 import { MessagingProcessGroupEmailActionsCronCommand } from 'src/modules/messaging/message-import-manager/crons/commands/messaging-process-group-email-actions.cron.command';
 import { MessagingMessageListFetchCronJob } from 'src/modules/messaging/message-import-manager/crons/jobs/messaging-message-list-fetch.cron.job';
 import { MessagingMessagesImportCronJob } from 'src/modules/messaging/message-import-manager/crons/jobs/messaging-messages-import.cron.job';
 import { MessagingOngoingStaleCronJob } from 'src/modules/messaging/message-import-manager/crons/jobs/messaging-ongoing-stale.cron.job';
+import { MessagingProcessFolderActionsCronJob } from 'src/modules/messaging/message-import-manager/crons/jobs/messaging-process-folder-actions.cron.job';
 import { MessagingProcessGroupEmailActionsCronJob } from 'src/modules/messaging/message-import-manager/crons/jobs/messaging-process-group-email-actions.cron.job';
 import { MessagingGmailDriverModule } from 'src/modules/messaging/message-import-manager/drivers/gmail/messaging-gmail-driver.module';
 import { MessagingIMAPDriverModule } from 'src/modules/messaging/message-import-manager/drivers/imap/messaging-imap-driver.module';
@@ -33,6 +35,7 @@ import { MessagingCleanCacheJob } from 'src/modules/messaging/message-import-man
 import { MessagingMessageListFetchJob } from 'src/modules/messaging/message-import-manager/jobs/messaging-message-list-fetch.job';
 import { MessagingMessagesImportJob } from 'src/modules/messaging/message-import-manager/jobs/messaging-messages-import.job';
 import { MessagingOngoingStaleJob } from 'src/modules/messaging/message-import-manager/jobs/messaging-ongoing-stale.job';
+import { MessagingProcessFolderActionsJob } from 'src/modules/messaging/message-import-manager/jobs/messaging-process-folder-actions.job';
 import { MessagingProcessGroupEmailActionsJob } from 'src/modules/messaging/message-import-manager/jobs/messaging-process-group-email-actions.job';
 import { MessagingMessageImportManagerMessageChannelListener } from 'src/modules/messaging/message-import-manager/listeners/messaging-import-manager-message-channel.listener';
 import { MessagingAccountAuthenticationService } from 'src/modules/messaging/message-import-manager/services/messaging-account-authentication.service';
@@ -81,16 +84,19 @@ import { MessagingMonitoringModule } from 'src/modules/messaging/monitoring/mess
     MessagingMessagesImportCronCommand,
     MessagingOngoingStaleCronCommand,
     MessagingProcessGroupEmailActionsCronCommand,
+    MessagingProcessFolderActionsCronCommand,
     MessagingSingleMessageImportCommand,
     MessagingRelaunchFailedMessageChannelsCommand,
     MessagingMessageListFetchJob,
     MessagingMessagesImportJob,
     MessagingOngoingStaleJob,
     MessagingProcessGroupEmailActionsJob,
+    MessagingProcessFolderActionsJob,
     MessagingMessageListFetchCronJob,
     MessagingMessagesImportCronJob,
     MessagingOngoingStaleCronJob,
     MessagingProcessGroupEmailActionsCronJob,
+    MessagingProcessFolderActionsCronJob,
     MessagingAddSingleMessageToCacheForImportJob,
     MessagingMessageImportManagerMessageChannelListener,
     MessagingCleanCacheJob,
@@ -116,6 +122,7 @@ import { MessagingMonitoringModule } from 'src/modules/messaging/monitoring/mess
     MessagingMessagesImportCronCommand,
     MessagingOngoingStaleCronCommand,
     MessagingProcessGroupEmailActionsCronCommand,
+    MessagingProcessFolderActionsCronCommand,
     MessagingProcessGroupEmailActionsService,
     MessagingProcessFolderActionsService,
   ],
