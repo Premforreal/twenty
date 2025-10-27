@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "license": "MIT",
+  "engines": {
+    "node": "^24.5.0",
+    "npm": "please-use-yarn",
+    "yarn": ">=4.0.2"
+  },
+  "packageManager": "yarn@4.9.2",
+  "devDependencies": {
+    "@types/node": "^24.7.2"
+  },
+  "$schema": "https://raw.githubusercontent.com/twentyhq/twenty/main/packages/twenty-cli/src/constants/schemas/appManifest.schema.json",
+  "universalIdentifier": "a840eda3-2ac4-4317-bf79-df3c16d24c90",
+  "name": "Computed field",
+  "description": "This application provide utils to create computed fields for your objects",
+  "dependencies": {
+    "axios": "^1.13.0"
+  },
+  "env": {
+    "TWENTY_API_URL": {
+      "isSecret": false
+    },
+    "TWENTY_API_KEY": {"isSecret": true}
+  }
+}

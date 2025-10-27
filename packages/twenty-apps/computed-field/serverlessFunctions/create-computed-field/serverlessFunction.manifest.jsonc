@@ -1,0 +1,5 @@
+{
+  "$schema": "https://raw.githubusercontent.com/twentyhq/twenty/main/packages/twenty-cli/src/constants/schemas/serverlessFunction.schema.json",
+  "universalIdentifier": "d81a442e-18dd-4a3d-9bbc-a13034ab395b",
+  "name": "create-computed-field"
+}
