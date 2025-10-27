@@ -115,7 +115,7 @@ export class SyncMessageFoldersService {
         folder,
       );
 
-      if (existingFolder) {
+      if (existingFolder && !isDefined(existingFolder.deletedAt)) {
         updates.push([
           existingFolder.id,
           {

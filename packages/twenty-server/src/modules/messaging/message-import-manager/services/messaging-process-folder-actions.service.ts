@@ -120,6 +120,14 @@ export class MessagingProcessFolderActionsService {
             `WorkspaceId: ${workspaceId}, MessageChannelId: ${messageChannel.id} - Reset pendingSyncAction to NONE for ${processedFolderIds.length} folders`,
           );
         }
+
+        if (folderIdsToDelete.length > 0) {
+          await messageFolderRepository.update(
+            { id: In(folderIdsToDelete) },
+            { deletedAt: new Date().toISOString() },
+            transactionManager,
+          );
+        }
       },
     );
   }
