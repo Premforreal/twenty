@@ -7,6 +7,7 @@ import {
 
 import { OAuth2ClientManagerService } from 'src/modules/connected-account/oauth2-client-manager/services/oauth2-client-manager.service';
 import { type ConnectedAccountWorkspaceEntity } from 'src/modules/connected-account/standard-objects/connected-account.workspace-entity';
+import { MessageChannelWorkspaceEntity } from 'src/modules/messaging/common/standard-objects/message-channel.workspace-entity';
 import { MicrosoftHandleErrorService } from 'src/modules/messaging/message-import-manager/drivers/microsoft/services/microsoft-handle-error.service';
 import { StandardFolder } from 'src/modules/messaging/message-import-manager/drivers/types/standard-folder';
 import { getStandardFolderByRegex } from 'src/modules/messaging/message-import-manager/drivers/utils/get-standard-folder-by-regex';
@@ -35,6 +36,7 @@ export class MicrosoftGetAllFoldersService implements MessageFolderDriver {
       ConnectedAccountWorkspaceEntity,
       'accessToken' | 'refreshToken' | 'id' | 'handle' | 'provider'
     >,
+    messageChannel: Pick<MessageChannelWorkspaceEntity, 'syncAllFolders'>,
   ): Promise<MessageFolder[]> {
     try {
       const microsoftClient =

@@ -99,8 +99,7 @@ export class MessagingMessageListFetchService {
 
       await this.syncMessageFoldersService.syncMessageFolders({
         workspaceId,
-        messageChannelId: messageChannelWithFreshTokens.id,
-        connectedAccount: messageChannelWithFreshTokens.connectedAccount,
+        messageChannel: messageChannelWithFreshTokens,
         manager: datasource.manager,
       });
 

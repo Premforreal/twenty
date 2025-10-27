@@ -7,6 +7,7 @@ import {
 
 import { OAuth2ClientManagerService } from 'src/modules/connected-account/oauth2-client-manager/services/oauth2-client-manager.service';
 import { type ConnectedAccountWorkspaceEntity } from 'src/modules/connected-account/standard-objects/connected-account.workspace-entity';
+import { MessageChannelWorkspaceEntity } from 'src/modules/messaging/common/standard-objects/message-channel.workspace-entity';
 import { MESSAGING_GMAIL_DEFAULT_NOT_SYNCED_LABELS } from 'src/modules/messaging/message-import-manager/drivers/gmail/constants/messaging-gmail-default-not-synced-labels';
 import { GmailHandleErrorService } from 'src/modules/messaging/message-import-manager/drivers/gmail/services/gmail-handle-error.service';
 
@@ -28,6 +29,7 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
       ConnectedAccountWorkspaceEntity,
       'provider' | 'refreshToken' | 'accessToken' | 'id' | 'handle'
     >,
+    messageChannel: Pick<MessageChannelWorkspaceEntity, 'syncAllFolders'>,
   ): Promise<MessageFolder[]> {
     try {
       const oAuth2Client =

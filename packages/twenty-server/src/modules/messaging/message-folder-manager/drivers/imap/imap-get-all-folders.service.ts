@@ -9,6 +9,7 @@ import {
 } from 'src/modules/messaging/message-folder-manager/interfaces/message-folder-driver.interface';
 
 import { type ConnectedAccountWorkspaceEntity } from 'src/modules/connected-account/standard-objects/connected-account.workspace-entity';
+import { MessageChannelWorkspaceEntity } from 'src/modules/messaging/common/standard-objects/message-channel.workspace-entity';
 import { ImapClientProvider } from 'src/modules/messaging/message-import-manager/drivers/imap/providers/imap-client.provider';
 import { ImapFindSentFolderService } from 'src/modules/messaging/message-import-manager/drivers/imap/services/imap-find-sent-folder.service';
 import { MessageFolderName } from 'src/modules/messaging/message-import-manager/drivers/imap/types/folders';
@@ -29,13 +30,18 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
       ConnectedAccountWorkspaceEntity,
       'id' | 'provider' | 'connectionParameters' | 'handle'
     >,
+    messageChannel: Pick<MessageChannelWorkspaceEntity, 'syncAllFolders'>,
   ): Promise<MessageFolder[]> {
     try {
       const client = await this.imapClientProvider.getClient(connectedAccount);
 
       const mailboxList = await client.list();
 
-      const folders = await this.filterAndMapFolders(client, mailboxList);
+      const folders = await this.filterAndMapFolders(
+        client,
+        mailboxList,
+        messageChannel,
+      );
 
       await this.imapClientProvider.closeClient(client);
 
@@ -53,6 +59,7 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
   private async filterAndMapFolders(
     client: ImapFlow,
     mailboxList: ListResponse[],
+    messageChannel: Pick<MessageChannelWorkspaceEntity, 'syncAllFolders'>,
   ): Promise<MessageFolder[]> {
     const folders: MessageFolder[] = [];
     const sentFolderPath =

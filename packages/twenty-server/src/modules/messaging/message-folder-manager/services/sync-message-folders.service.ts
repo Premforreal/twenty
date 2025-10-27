@@ -21,8 +21,10 @@ import { MessageFolderName } from 'src/modules/messaging/message-import-manager/
 
 type SyncMessageFoldersInput = {
   workspaceId: string;
-  messageChannelId: string;
-  connectedAccount: MessageChannelWorkspaceEntity['connectedAccount'];
+  messageChannel: Pick<
+    MessageChannelWorkspaceEntity,
+    'syncAllFolders' | 'connectedAccount' | 'id'
+  >;
   manager: WorkspaceEntityManager;
 };
 
@@ -51,13 +53,16 @@ export class SyncMessageFoldersService {
   ) {}
 
   async syncMessageFolders(input: SyncMessageFoldersInput): Promise<void> {
-    const { workspaceId, messageChannelId, connectedAccount, manager } = input;
+    const { workspaceId, messageChannel, manager } = input;
 
-    const folders = await this.discoverAllFolders(connectedAccount);
+    const folders = await this.discoverAllFolders(
+      messageChannel.connectedAccount,
+      messageChannel,
+    );
 
     await this.upsertDiscoveredFolders({
       workspaceId,
-      messageChannelId,
+      messageChannelId: messageChannel.id,
       folders,
       manager,
     });
@@ -162,19 +167,23 @@ export class SyncMessageFoldersService {
 
   async discoverAllFolders(
     connectedAccount: MessageChannelWorkspaceEntity['connectedAccount'],
+    messageChannel: Pick<MessageChannelWorkspaceEntity, 'syncAllFolders'>,
   ): Promise<MessageFolder[]> {
     switch (connectedAccount.provider) {
       case ConnectedAccountProvider.GOOGLE:
         return await this.gmailGetAllFoldersService.getAllMessageFolders(
           connectedAccount,
+          messageChannel,
         );
       case ConnectedAccountProvider.MICROSOFT:
         return await this.microsoftGetAllFoldersService.getAllMessageFolders(
           connectedAccount,
+          messageChannel,
         );
       case ConnectedAccountProvider.IMAP_SMTP_CALDAV:
         return await this.imapGetAllFoldersService.getAllMessageFolders(
           connectedAccount,
+          messageChannel,
         );
       default:
         throw new Error(
