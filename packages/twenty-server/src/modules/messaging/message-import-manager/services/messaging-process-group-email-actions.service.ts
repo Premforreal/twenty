@@ -74,6 +74,7 @@ export class MessagingProcessGroupEmailActionsService {
           break;
       }
 
+      // TODO: this may or may not work and Im very sleepy so will investigate later
       await messageChannelRepository.update(
         { id: messageChannel.id },
         {

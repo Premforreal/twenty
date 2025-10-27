@@ -1,3 +1,4 @@
+// TODO: Optimize query
 import { Injectable, Logger } from '@nestjs/common';
 
 import chunk from 'lodash.chunk';
@@ -9,6 +10,8 @@ import { MessageChannelMessageAssociationWorkspaceEntity } from 'src/modules/mes
 import { type MessageParticipantWorkspaceEntity } from 'src/modules/messaging/common/standard-objects/message-participant.workspace-entity';
 import { MessagingMessageCleanerService } from 'src/modules/messaging/message-cleaner/services/messaging-message-cleaner.service';
 import { isGroupEmail } from 'src/modules/messaging/message-import-manager/utils/is-group-email';
+
+const MESSAGE_CHANNEL_MESSAGE_ASSOCIATION_BATCH_SIZE = 500;
 
 @Injectable()
 export class MessagingDeleteGroupEmailMessagesService {
@@ -42,7 +45,6 @@ export class MessagingDeleteGroupEmailMessagesService {
       );
 
     let offset = 0;
-    const batchSize = 500;
     let totalDeletedCount = 0;
 
     while (true) {
@@ -52,7 +54,7 @@ export class MessagingDeleteGroupEmailMessagesService {
             messageChannelId,
           },
           select: ['messageId', 'messageExternalId'],
-          take: batchSize,
+          take: MESSAGE_CHANNEL_MESSAGE_ASSOCIATION_BATCH_SIZE,
           skip: offset,
         });
 
@@ -109,11 +111,13 @@ export class MessagingDeleteGroupEmailMessagesService {
         }
       }
 
-      if (associations.length < batchSize) {
+      if (
+        associations.length < MESSAGE_CHANNEL_MESSAGE_ASSOCIATION_BATCH_SIZE
+      ) {
         break;
       }
 
-      offset += batchSize;
+      offset += MESSAGE_CHANNEL_MESSAGE_ASSOCIATION_BATCH_SIZE;
     }
 
     this.logger.log(
