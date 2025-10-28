@@ -13,7 +13,6 @@ import { SyncMessageFoldersService } from 'src/modules/messaging/message-folder-
 import { MessagingGmailDriverModule } from 'src/modules/messaging/message-import-manager/drivers/gmail/messaging-gmail-driver.module';
 import { MessagingIMAPDriverModule } from 'src/modules/messaging/message-import-manager/drivers/imap/messaging-imap-driver.module';
 import { MessagingMicrosoftDriverModule } from 'src/modules/messaging/message-import-manager/drivers/microsoft/messaging-microsoft-driver.module';
-import { MessagingImportManagerModule } from 'src/modules/messaging/message-import-manager/messaging-import-manager.module';
 
 @Module({
   imports: [
@@ -25,7 +24,6 @@ import { MessagingImportManagerModule } from 'src/modules/messaging/message-impo
     MessagingGmailDriverModule,
     MessagingMicrosoftDriverModule,
     MessagingIMAPDriverModule,
-    MessagingImportManagerModule,
   ],
   providers: [
     SyncMessageFoldersService,
