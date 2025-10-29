@@ -6,13 +6,17 @@ import { useFindOneRecord } from '@/object-record/hooks/useFindOneRecord';
 import { useUpdateOneRecord } from '@/object-record/hooks/useUpdateOneRecord';
 import { SettingsMessageFoldersEmptyStateCard } from '@/settings/accounts/components/message-folders/SettingsMessageFoldersEmptyStateCard';
 import { SettingsMessageFoldersTableRow } from '@/settings/accounts/components/message-folders/SettingsMessageFoldersTableRow';
+import {
+  buildFolderHierarchy,
+  flattenFolderHierarchy,
+} from '@/settings/accounts/components/message-folders/utils/buildFolderHierarchy.util';
 import { settingsAccountsSelectedMessageChannelState } from '@/settings/accounts/states/settingsAccountsSelectedMessageChannelState';
 import { SettingsTextInput } from '@/ui/input/components/SettingsTextInput';
 import { Table } from '@/ui/layout/table/components/Table';
 import { TableCell } from '@/ui/layout/table/components/TableCell';
 import styled from '@emotion/styled';
 import { useLingui } from '@lingui/react/macro';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { Label } from 'twenty-ui/display';
 import { Checkbox, CheckboxSize } from 'twenty-ui/input';
@@ -58,6 +62,9 @@ const StyledLabel = styled(Label)`
 export const SettingsAccountsMessageFoldersCard = () => {
   const { t } = useLingui();
   const [search, setSearch] = useState('');
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const settingsAccountsSelectedMessageChannel = useRecoilValue(
     settingsAccountsSelectedMessageChannelState,
@@ -81,15 +88,39 @@ export const SettingsAccountsMessageFoldersCard = () => {
 
   const { messageFolders = [] } = messageChannel ?? {};
 
-  const filteredMessageFolders = useMemo(() => {
-    return messageFolders.filter((folder) =>
-      folder.name.toLowerCase().includes(search.toLowerCase()),
+  // Build folder hierarchy
+  const folderHierarchy = useMemo(() => {
+    return buildFolderHierarchy(messageFolders);
+  }, [messageFolders]);
+
+  // Initialize expanded state for all folders with children
+  useEffect(() => {
+    if (messageFolders.length > 0) {
+      const foldersWithChildren = messageFolders.filter((folder) =>
+        messageFolders.some((f) => f.parentFolderId === folder.id),
+      );
+      setExpandedFolderIds(new Set(foldersWithChildren.map((f) => f.id)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsAccountsSelectedMessageChannel?.id]);
+
+  // Flatten hierarchy for rendering
+  const flattenedFolders = useMemo(() => {
+    return flattenFolderHierarchy(folderHierarchy, expandedFolderIds);
+  }, [folderHierarchy, expandedFolderIds]);
+
+  // Filter folders based on search
+  const filteredFolders = useMemo(() => {
+    if (!search) return flattenedFolders;
+
+    return flattenedFolders.filter((item) =>
+      item.folder.name.toLowerCase().includes(search.toLowerCase()),
     );
-  }, [messageFolders, search]);
+  }, [flattenedFolders, search]);
 
   const allFoldersToggled = useMemo(() => {
-    return filteredMessageFolders.every((folder) => folder.isSynced);
-  }, [filteredMessageFolders]);
+    return messageFolders.every((folder) => folder.isSynced);
+  }, [messageFolders]);
 
   const handleToggleAllFolders = async (
     messageFoldersToToggle: MessageFolder[],
@@ -113,6 +144,18 @@ export const SettingsAccountsMessageFoldersCard = () => {
       updateOneRecordInput: {
         isSynced: !messageFoldersToToggle.isSynced,
       },
+    });
+  };
+
+  const handleToggleExpand = (folderId: string) => {
+    setExpandedFolderIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
     });
   };
 
@@ -143,11 +186,21 @@ export const SettingsAccountsMessageFoldersCard = () => {
         </StyledSectionHeader>
 
         <StyledTableRows>
-          {filteredMessageFolders?.map((folder) => (
+          {filteredFolders?.map((item) => (
             <SettingsMessageFoldersTableRow
-              key={folder.id}
-              folder={folder}
-              onSyncToggle={() => handleToggleFolder(folder)}
+              key={item.folder.id}
+              folder={item.folder}
+              onSyncToggle={() => handleToggleFolder(item.folder)}
+              depth={item.depth}
+              isLast={item.isLast}
+              hasChildren={item.hasChildren}
+              childCount={item.childCount}
+              isExpanded={item.isExpanded}
+              onToggleExpand={
+                item.hasChildren
+                  ? () => handleToggleExpand(item.folder.id)
+                  : undefined
+              }
             />
           ))}
         </StyledTableRows>
