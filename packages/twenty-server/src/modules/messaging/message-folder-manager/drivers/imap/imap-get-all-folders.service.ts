@@ -71,6 +71,7 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
         name: sentFolderPath,
         isSynced: true,
         isSentFolder: true,
+        parentFolderId: sentMailbox?.parentPath || null,
       });
     }
 
@@ -95,6 +96,7 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
         name: mailbox.path,
         isSynced,
         isSentFolder: false,
+        parentFolderId: mailbox.parentPath || null,
       });
     }
 

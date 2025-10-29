@@ -65,6 +65,7 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
           name: label.name,
           isSynced: this.isSyncedByDefault(label.id),
           isSentFolder,
+          parentFolderId: this.getParentFolderId(label.name),
         });
       }
 
@@ -81,5 +82,13 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
 
       throw error;
     }
+  }
+
+  private getParentFolderId(labelName: string): string | null {
+    if (labelName.includes('/')) {
+      return labelName.substring(0, labelName.lastIndexOf('/'));
+    }
+
+    return null;
   }
 }

@@ -75,6 +75,7 @@ export class MicrosoftGetAllFoldersService implements MessageFolderDriver {
           name: folder.displayName,
           isSynced,
           isSentFolder,
+          parentFolderId: folder.parentFolderId ?? null,
         });
       }
 
