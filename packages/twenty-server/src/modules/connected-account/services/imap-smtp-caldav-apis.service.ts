@@ -168,12 +168,8 @@ export class ImapSmtpCalDavAPIService {
         type: MessageChannelType.EMAIL,
         handle: input.handle,
         isSyncEnabled: shouldEnableSync,
-        syncStatus: shouldEnableSync
-          ? MessageChannelSyncStatus.ONGOING
-          : MessageChannelSyncStatus.NOT_SYNCED,
-        syncStage: shouldEnableSync
-          ? MessageChannelSyncStage.MESSAGE_LIST_FETCH_PENDING
-          : undefined,
+        syncStatus: MessageChannelSyncStatus.NOT_SYNCED,
+        syncStage: MessageChannelSyncStage.PENDING_CONFIGURATION,
         syncCursor: '',
         syncStageStartedAt: null,
       },
@@ -201,8 +197,8 @@ export class ImapSmtpCalDavAPIService {
           connectedAccountId: accountId,
           handle: input.handle,
           isSyncEnabled: shouldEnableSync,
-          syncStatus: CalendarChannelSyncStatus.ONGOING,
-          syncStage: CalendarChannelSyncStage.CALENDAR_EVENT_LIST_FETCH_PENDING,
+          syncStatus: CalendarChannelSyncStatus.NOT_SYNCED,
+          syncStage: CalendarChannelSyncStage.PENDING_CONFIGURATION,
           syncCursor: '',
           syncStageStartedAt: null,
         },
@@ -223,7 +219,13 @@ export class ImapSmtpCalDavAPIService {
     messageChannel: MessageChannelWorkspaceEntity | null,
     calendarChannel: CalendarChannelWorkspaceEntity | null,
   ) {
-    if (input.connectionParameters.IMAP && messageChannel) {
+    // Only enqueue sync jobs if the channel is not in PENDING_CONFIGURATION state
+    // Sync should be started explicitly via startChannelSync after configuration is complete
+    if (
+      input.connectionParameters.IMAP &&
+      messageChannel &&
+      messageChannel.syncStage !== MessageChannelSyncStage.PENDING_CONFIGURATION
+    ) {
       await this.messageQueueService.add<MessagingMessageListFetchJobData>(
         MessagingMessageListFetchJob.name,
         {
@@ -233,7 +235,11 @@ export class ImapSmtpCalDavAPIService {
       );
     }
 
-    if (input.connectionParameters.CALDAV && calendarChannel) {
+    if (
+      input.connectionParameters.CALDAV &&
+      calendarChannel &&
+      calendarChannel.syncStage !== CalendarChannelSyncStage.PENDING_CONFIGURATION
+    ) {
       await this.calendarQueueService.add<CalendarEventListFetchJobData>(
         CalendarEventListFetchJob.name,
         {
