@@ -3954,10 +3954,16 @@ export type TestHttpRequestOutput = {
   __typename?: 'TestHttpRequestOutput';
   /** Error information */
   error?: Maybe<Scalars['JSON']>;
+  /** Response headers */
+  headers?: Maybe<Scalars['JSON']>;
   /** Message describing the result */
   message: Scalars['String'];
   /** Response data */
   result?: Maybe<Scalars['JSON']>;
+  /** HTTP status code */
+  status?: Maybe<Scalars['Float']>;
+  /** HTTP status text */
+  statusText?: Maybe<Scalars['String']>;
   /** Whether the request was successful */
   success: Scalars['Boolean'];
 };
@@ -6240,7 +6246,7 @@ export type TestHttpRequestMutationVariables = Exact<{
 }>;
 
 
-export type TestHttpRequestMutation = { __typename?: 'Mutation', testHttpRequest: { __typename?: 'TestHttpRequestOutput', success: boolean, message: string, result?: any | null, error?: any | null } };
+export type TestHttpRequestMutation = { __typename?: 'Mutation', testHttpRequest: { __typename?: 'TestHttpRequestOutput', success: boolean, message: string, result?: any | null, error?: any | null, status?: number | null, statusText?: string | null, headers?: any | null } };
 
 export type UpdateWorkflowVersionPositionsMutationVariables = Exact<{
   input: UpdateWorkflowVersionPositionsInput;
@@ -14089,6 +14095,9 @@ export const TestHttpRequestDocument = gql`
     message
     result
     error
+    status
+    statusText
+    headers
   }
 }
     `;
