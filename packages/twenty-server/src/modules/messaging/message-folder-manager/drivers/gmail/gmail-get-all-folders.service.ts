@@ -53,6 +53,10 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
 
       const folders: MessageFolder[] = [];
 
+      const AllLabelNames = new Set(
+        labels.filter((label) => label.name).map((label) => label.name!),
+      );
+
       for (const label of labels) {
         if (!label.name || !label.id) {
           continue;
@@ -65,7 +69,7 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
           name: label.name,
           isSynced: this.isSyncedByDefault(label.id),
           isSentFolder,
-          parentFolderId: this.getParentFolderId(label.name),
+          parentFolderId: this.getParentFolderId(label.name, AllLabelNames),
         });
       }
 
@@ -84,11 +88,15 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
     }
   }
 
-  private getParentFolderId(labelName: string): string | null {
-    if (labelName.includes('/')) {
-      return labelName.substring(0, labelName.lastIndexOf('/'));
+  private getParentFolderId(
+    labelName: string,
+    existingLabelNames: Set<string>,
+  ): string | null {
+    if (!labelName.includes('/')) {
+      return null;
     }
+    const parentName = labelName.substring(0, labelName.lastIndexOf('/'));
 
-    return null;
+    return existingLabelNames.has(parentName) ? parentName : null;
   }
 }
