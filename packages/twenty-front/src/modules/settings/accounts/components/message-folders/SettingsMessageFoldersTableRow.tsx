@@ -76,7 +76,6 @@ const StyledExpandButton = styled.div`
   flex-shrink: 0;
   height: 24px;
   justify-content: center;
-  margin-right: ${({ theme }) => theme.spacing(1)};
   width: 24px;
 `;
 
@@ -114,16 +113,6 @@ export const SettingsMessageFoldersTableRow = ({
               {showVerticalBar && <StyledSecondaryFullVerticalBar />}
             </StyledBreadcrumbContainer>
           )}
-          <StyledExpandButton>
-            {hasChildren && onToggleExpand && (
-              <IconButton
-                Icon={isExpanded ? IconChevronUp : IconChevronDown}
-                onClick={onToggleExpand}
-                size="small"
-                variant="tertiary"
-              />
-            )}
-          </StyledExpandButton>
           <StyledFolderNameWrapper>
             <SettingsAccountsMessageFolderIcon folder={folder} />
             {formatFolderName(folder.name)}
@@ -134,6 +123,16 @@ export const SettingsMessageFoldersTableRow = ({
         {hasChildren && childCount > 0 && (
           <StyledChildCount>{childCount}</StyledChildCount>
         )}
+        <StyledExpandButton>
+          {hasChildren && onToggleExpand && (
+            <IconButton
+              Icon={isExpanded ? IconChevronUp : IconChevronDown}
+              onClick={onToggleExpand}
+              size="small"
+              variant="tertiary"
+            />
+          )}
+        </StyledExpandButton>
         <Checkbox
           checked={folder.isSynced}
           onChange={onSyncToggle}
