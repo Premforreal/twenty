@@ -18,6 +18,7 @@ import { ViewGroupEntity } from 'src/engine/metadata-modules/view-group/entities
 import { ViewEntity } from 'src/engine/metadata-modules/view/entities/view.entity';
 import { WorkspaceFlatMapCache } from 'src/engine/workspace-flat-map-cache/decorators/workspace-flat-map-cache.decorator';
 import { WorkspaceFlatMapCacheService } from 'src/engine/workspace-flat-map-cache/services/workspace-flat-map-cache.service';
+import { prastoin } from 'src/engine/workspace-flat-map-cache/utils/prastoin';
 
 @Injectable()
 @WorkspaceFlatMapCache('flatFieldMetadataMaps')
@@ -46,95 +47,94 @@ export class WorkspaceFlatFieldMetadataMapCacheService extends WorkspaceFlatMapC
   }: {
     workspaceId: string;
   }): Promise<FlatEntityMaps<FlatFieldMetadata>> {
-    // Fetch all entities for workspace in parallel
-    const [
-      fieldMetadatas,
-      viewFields,
-      viewFilters,
-      viewGroups,
-      kanbanViews,
-      calendarViews,
-    ] = await Promise.all([
-      this.fieldMetadataRepository.find({
-        where: { workspaceId },
-        withDeleted: true,
-      }),
-      this.viewFieldRepository.find({
-        where: { workspaceId },
-        select: ['id', 'fieldMetadataId'],
-        withDeleted: true,
-      }),
-      this.viewFilterRepository.find({
-        where: { workspaceId },
-        select: ['id', 'fieldMetadataId'],
-        withDeleted: true,
-      }),
-      this.viewGroupRepository.find({
-        where: { workspaceId },
-        select: ['id', 'fieldMetadataId'],
-        withDeleted: true,
-      }),
-      this.viewRepository.find({
-        where: { workspaceId },
-        select: ['id', 'kanbanAggregateOperationFieldMetadataId'],
-        withDeleted: true,
-      }),
-      this.viewRepository.find({
-        where: { workspaceId },
-        select: ['id', 'calendarFieldMetadataId'],
-        withDeleted: true,
-      }),
-    ]);
-
-    if (fieldMetadatas.length === 0) {
-      return EMPTY_FLAT_ENTITY_MAPS;
-    }
+    const { others, parent } = await prastoin<'fieldMetadata'>({
+      parent: this.fieldMetadataRepository,
+      workspaceId,
+      repos: {
+        view: {
+          foreignKeys: [
+            'calendarFieldMetadataId',
+            'kanbanAggregateOperationFieldMetadataId',
+          ],
+          repository: this.viewRepository,
+        },
+        viewField: {
+          foreignKeys: ['fieldMetadataId'],
+          repository: this.viewFieldRepository,
+        },
+        viewFilter: {
+          foreignKeys: ['fieldMetadataId'],
+          repository: this.viewFilterRepository,
+        },
+        viewGroup: {
+          foreignKeys: ['fieldMetadataId'],
+          repository: this.viewGroupRepository,
+        },
+      },
+    });
 
     // Build maps of fieldMetadataId -> related IDs
-    const viewFieldsByFieldId = new Map<string, { id: string }[]>();
-    const viewFiltersByFieldId = new Map<string, { id: string }[]>();
-    const viewGroupsByFieldId = new Map<string, { id: string }[]>();
-    const kanbanViewsByFieldId = new Map<string, { id: string }[]>();
-    const calendarViewsByFieldId = new Map<string, { id: string }[]>();
+    // const viewFieldsByFieldId = new Map<string, { id: string }[]>();
+    // const viewFiltersByFieldId = new Map<string, { id: string }[]>();
+    // const viewGroupsByFieldId = new Map<string, { id: string }[]>();
+    // const kanbanViewsByFieldId = new Map<string, { id: string }[]>();
+    // const calendarViewsByFieldId = new Map<string, { id: string }[]>();
 
-    for (const viewField of viewFields) {
-      if (!viewFieldsByFieldId.has(viewField.fieldMetadataId)) {
-        viewFieldsByFieldId.set(viewField.fieldMetadataId, []);
-      }
-      viewFieldsByFieldId.get(viewField.fieldMetadataId)!.push({ id: viewField.id });
-    }
+    // for (const viewField of viewFields) {
+    //   if (!viewFieldsByFieldId.has(viewField.fieldMetadataId)) {
+    //     viewFieldsByFieldId.set(viewField.fieldMetadataId, []);
+    //   }
+    //   viewFieldsByFieldId
+    //     .get(viewField.fieldMetadataId)!
+    //     .push({ id: viewField.id });
+    // }
 
-    for (const viewFilter of viewFilters) {
-      if (!viewFiltersByFieldId.has(viewFilter.fieldMetadataId)) {
-        viewFiltersByFieldId.set(viewFilter.fieldMetadataId, []);
-      }
-      viewFiltersByFieldId.get(viewFilter.fieldMetadataId)!.push({ id: viewFilter.id });
-    }
+    // for (const viewFilter of viewFilters) {
+    //   if (!viewFiltersByFieldId.has(viewFilter.fieldMetadataId)) {
+    //     viewFiltersByFieldId.set(viewFilter.fieldMetadataId, []);
+    //   }
+    //   viewFiltersByFieldId
+    //     .get(viewFilter.fieldMetadataId)!
+    //     .push({ id: viewFilter.id });
+    // }
 
-    for (const viewGroup of viewGroups) {
-      if (!viewGroupsByFieldId.has(viewGroup.fieldMetadataId)) {
-        viewGroupsByFieldId.set(viewGroup.fieldMetadataId, []);
-      }
-      viewGroupsByFieldId.get(viewGroup.fieldMetadataId)!.push({ id: viewGroup.id });
-    }
+    // for (const viewGroup of viewGroups) {
+    //   if (!viewGroupsByFieldId.has(viewGroup.fieldMetadataId)) {
+    //     viewGroupsByFieldId.set(viewGroup.fieldMetadataId, []);
+    //   }
+    //   viewGroupsByFieldId
+    //     .get(viewGroup.fieldMetadataId)!
+    //     .push({ id: viewGroup.id });
+    // }
 
-    for (const kanbanView of kanbanViews) {
-      if (kanbanView.kanbanAggregateOperationFieldMetadataId) {
-        if (!kanbanViewsByFieldId.has(kanbanView.kanbanAggregateOperationFieldMetadataId)) {
-          kanbanViewsByFieldId.set(kanbanView.kanbanAggregateOperationFieldMetadataId, []);
-        }
-        kanbanViewsByFieldId.get(kanbanView.kanbanAggregateOperationFieldMetadataId)!.push({ id: kanbanView.id });
-      }
-    }
+    // for (const kanbanView of kanbanViews) {
+    //   if (kanbanView.kanbanAggregateOperationFieldMetadataId) {
+    //     if (
+    //       !kanbanViewsByFieldId.has(
+    //         kanbanView.kanbanAggregateOperationFieldMetadataId,
+    //       )
+    //     ) {
+    //       kanbanViewsByFieldId.set(
+    //         kanbanView.kanbanAggregateOperationFieldMetadataId,
+    //         [],
+    //       );
+    //     }
+    //     kanbanViewsByFieldId
+    //       .get(kanbanView.kanbanAggregateOperationFieldMetadataId)!
+    //       .push({ id: kanbanView.id });
+    //   }
+    // }
 
-    for (const calendarView of calendarViews) {
-      if (calendarView.calendarFieldMetadataId) {
-        if (!calendarViewsByFieldId.has(calendarView.calendarFieldMetadataId)) {
-          calendarViewsByFieldId.set(calendarView.calendarFieldMetadataId, []);
-        }
-        calendarViewsByFieldId.get(calendarView.calendarFieldMetadataId)!.push({ id: calendarView.id });
-      }
-    }
+    // for (const calendarView of calendarViews) {
+    //   if (calendarView.calendarFieldMetadataId) {
+    //     if (!calendarViewsByFieldId.has(calendarView.calendarFieldMetadataId)) {
+    //       calendarViewsByFieldId.set(calendarView.calendarFieldMetadataId, []);
+    //     }
+    //     calendarViewsByFieldId
+    //       .get(calendarView.calendarFieldMetadataId)!
+    //       .push({ id: calendarView.id });
+    //   }
+    // }
 
     // Build field metadata entities with relations
     return fieldMetadatas.reduce(
