@@ -56,24 +56,24 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
   ): Promise<MessageFolder[]> {
     const folders: MessageFolder[] = [];
     const pathToExternalIdMap = new Map<string, string>();
-    const sentFolderPath =
+    const sentFolder =
       await this.imapFindSentFolderService.findSentFolder(client);
 
-    if (isDefined(sentFolderPath)) {
-      const sentMailbox = mailboxList.find((m) => m.path === sentFolderPath);
+    if (isDefined(sentFolder)) {
+      const sentMailbox = mailboxList.find((m) => m.path === sentFolder.path);
       const uidValidity = sentMailbox
         ? await this.getUidValidity(client, sentMailbox)
         : null;
 
       const externalId = uidValidity
-        ? `${sentFolderPath}:${uidValidity.toString()}`
-        : sentFolderPath;
+        ? `${sentFolder.path}:${uidValidity.toString()}`
+        : sentFolder.path;
 
-      pathToExternalIdMap.set(sentFolderPath, externalId);
+      pathToExternalIdMap.set(sentFolder.path, externalId);
 
       folders.push({
         externalId,
-        name: sentMailbox?.name || sentFolderPath,
+        name: sentFolder.name,
         isSynced: true,
         isSentFolder: true,
         parentFolderId: sentMailbox?.parentPath || null,
