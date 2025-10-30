@@ -47,6 +47,7 @@ const normalizeValueForComparison = (
     const dateValue = new Date(value);
     const granularity = fieldConfig.granularity;
 
+    // TODO: to remove once backend properly returns DATE without time
     switch (granularity) {
       case 'DAY':
         return dateValue.toISOString().split('T')[0];
@@ -92,14 +93,6 @@ const doesRecordBelongToGroup = (
     }
 
     let recordValue = record[fieldName];
-
-    if (!isDefined(recordValue) && fieldName.endsWith('Id')) {
-      const relationFieldName = fieldName.slice(0, -2);
-      const relationObject = record[relationFieldName];
-      if (typeof relationObject === 'object' && relationObject !== null) {
-        recordValue = relationObject.id;
-      }
-    }
 
     if (!isDefined(recordValue)) {
       return false;
@@ -254,6 +247,7 @@ export const triggerUpdateGroupByQueriesOptimisticEffect = ({
         const queryFilter = queryVariables?.filter;
         const groupByConfig = queryVariables?.groupBy;
 
+        // Process each group connection
         const updatedGroupByConnections = cachedGroupByConnections.map(
           (groupConnection) => {
             const groupByDimensionValues =
@@ -271,7 +265,6 @@ export const triggerUpdateGroupByQueriesOptimisticEffect = ({
               hasPreviousPage?: boolean;
             }>('pageInfo', groupConnection);
 
-            // Use the shared processing logic
             const { nextEdges, nextPageInfo, totalCountDelta } =
               processConnectionWithRecords({
                 cachedEdges,
@@ -306,6 +299,112 @@ export const triggerUpdateGroupByQueriesOptimisticEffect = ({
             };
           },
         );
+
+        // Handle records that belong to dimensions not yet in the cache
+        if (operation === 'create' || operation === 'update') {
+          const recordsToAddToNewGroups: Map<
+            string,
+            {
+              dimensionValues: string[];
+              edges: RecordGqlRefEdge[];
+            }
+          > = new Map();
+
+          for (const record of records) {
+            const recordMatchesFilter = isRecordMatchingFilter({
+              record,
+              filter: queryFilter ?? {},
+              objectMetadataItem,
+            });
+
+            if (
+              shouldMatchRootQueryFilter &&
+              !recordMatchesFilter &&
+              operation === 'create'
+            ) {
+              continue;
+            }
+
+            if (!isDefined(groupByConfig) || groupByConfig.length === 0) {
+              continue;
+            }
+
+            const recordDimensionValues: string[] = [];
+            const groupByFieldNames = groupByConfig.map(
+              (groupByField) => Object.keys(groupByField)[0],
+            );
+
+            for (let i = 0; i < groupByFieldNames.length; i++) {
+              const fieldName = groupByFieldNames[i];
+              let recordValue = record[fieldName];
+
+              if (!isDefined(recordValue)) {
+                break;
+              }
+
+              const fieldConfig = groupByConfig[i][fieldName];
+              const normalizedValue = normalizeValueForComparison(
+                recordValue,
+                fieldConfig,
+              );
+              recordDimensionValues.push(normalizedValue);
+            }
+
+            const dimensionKey = recordDimensionValues.join('|');
+            const dimensionExists = updatedGroupByConnections.some((conn) => {
+              const connDimensionValues =
+                readField('groupByDimensionValues', conn) || [];
+              return (
+                Array.isArray(connDimensionValues) &&
+                connDimensionValues.join('|') === dimensionKey
+              );
+            });
+
+            if (
+              !dimensionExists &&
+              recordDimensionValues.length === groupByFieldNames.length
+            ) {
+              const recordReference = toReference(record);
+
+              if (isDefined(recordReference)) {
+                if (!recordsToAddToNewGroups.has(dimensionKey)) {
+                  recordsToAddToNewGroups.set(dimensionKey, {
+                    dimensionValues: recordDimensionValues,
+                    edges: [],
+                  });
+                }
+
+                const cursor = encodeCursor(record);
+                const edge = {
+                  __typename: getEdgeTypename(objectMetadataItem.nameSingular),
+                  node: recordReference,
+                  cursor,
+                };
+
+                recordsToAddToNewGroups.get(dimensionKey)!.edges.push(edge);
+              }
+            }
+          }
+
+          for (const [_, groupData] of recordsToAddToNewGroups) {
+            if (groupData.edges.length > 0) {
+              const newGroupConnection = {
+                __typename: `${objectMetadataItem.nameSingular}Connection`,
+                edges: groupData.edges,
+                pageInfo: {
+                  hasNextPage: false,
+                  hasPreviousPage: false,
+                  startCursor: groupData.edges[0].cursor,
+                  endCursor: groupData.edges[groupData.edges.length - 1].cursor,
+                },
+                totalCount: groupData.edges.length,
+                groupByDimensionValues: groupData.dimensionValues,
+              };
+
+              updatedGroupByConnections.push(newGroupConnection);
+            }
+          }
+        }
 
         return updatedGroupByConnections;
       },

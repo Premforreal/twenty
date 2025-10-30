@@ -63,7 +63,10 @@ export const useRecordCalendarGroupByRecords = (selectedDate: Date) => {
 
   const { data, loading, error } = useQuery(groupByRecordsQuery, {
     client: apolloCoreClient,
-    skip: !isDefined(calendarFieldMetadataItem) || groupBy.length === 0,
+    skip:
+      !isDefined(calendarFieldMetadataItem) ||
+      groupBy.length === 0 ||
+      Object.keys(dateRangeFilter).length === 0,
     fetchPolicy: 'cache-and-network',
     variables: {
       groupBy,
