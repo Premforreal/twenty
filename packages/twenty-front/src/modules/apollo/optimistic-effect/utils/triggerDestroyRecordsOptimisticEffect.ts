@@ -1,5 +1,6 @@
 import { type ApolloCache, type StoreObject } from '@apollo/client';
 
+import { triggerUpdateGroupByQueriesOptimisticEffect } from '@/apollo/optimistic-effect/utils/triggerUpdateGroupByQueriesOptimisticEffect';
 import { triggerUpdateRelationsOptimisticEffect } from '@/apollo/optimistic-effect/utils/triggerUpdateRelationsOptimisticEffect';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { type RecordGqlRefEdge } from '@/object-record/cache/types/RecordGqlRefEdge';
@@ -89,5 +90,13 @@ export const triggerDestroyRecordsOptimisticEffect = ({
     });
 
     cache.evict({ id: cache.identify(recordToDestroy) });
+  });
+
+  // Update groupBy queries in addition to regular queries
+  triggerUpdateGroupByQueriesOptimisticEffect({
+    cache,
+    objectMetadataItem,
+    operation: 'delete',
+    records: recordsToDestroy,
   });
 };

@@ -1,18 +1,18 @@
 import { type ApolloCache, type StoreObject } from '@apollo/client';
 import { isNonEmptyString } from '@sniptt/guards';
 
+import { triggerUpdateGroupByQueriesOptimisticEffect } from '@/apollo/optimistic-effect/utils/triggerUpdateGroupByQueriesOptimisticEffect';
 import { triggerUpdateRelationsOptimisticEffect } from '@/apollo/optimistic-effect/utils/triggerUpdateRelationsOptimisticEffect';
+import { type CachedObjectRecordQueryVariables } from '@/apollo/types/CachedObjectRecordQueryVariables';
+import { encodeCursor } from '@/apollo/utils/encodeCursor';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { type RecordGqlRefEdge } from '@/object-record/cache/types/RecordGqlRefEdge';
 import { getEdgeTypename } from '@/object-record/cache/utils/getEdgeTypename';
+import { getRecordFromCache } from '@/object-record/cache/utils/getRecordFromCache';
+import { getRecordNodeFromRecord } from '@/object-record/cache/utils/getRecordNodeFromRecord';
 import { isObjectRecordConnectionWithRefs } from '@/object-record/cache/utils/isObjectRecordConnectionWithRefs';
 import { type RecordGqlNode } from '@/object-record/graphql/types/RecordGqlNode';
 import { isRecordMatchingFilter } from '@/object-record/record-filter/utils/isRecordMatchingFilter';
-
-import { type CachedObjectRecordQueryVariables } from '@/apollo/types/CachedObjectRecordQueryVariables';
-import { encodeCursor } from '@/apollo/utils/encodeCursor';
-import { getRecordFromCache } from '@/object-record/cache/utils/getRecordFromCache';
-import { getRecordNodeFromRecord } from '@/object-record/cache/utils/getRecordNodeFromRecord';
 import { type ObjectRecord } from '@/object-record/types/ObjectRecord';
 import { type ObjectPermissions } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
@@ -231,11 +231,20 @@ export const triggerCreateRecordsOptimisticEffect = ({
           ...rootQueryCachedObjectRecordConnection,
           edges: nextRootQueryCachedRecordEdges,
           totalCount: isDefined(rootQueryCachedRecordTotalCount)
-            ? rootQueryCachedRecordTotalCount + 1
+            ? rootQueryCachedRecordTotalCount + recordsToCreate.length
             : undefined,
           pageInfo: nextQueryCachedPageInfo,
         };
       },
     },
+  });
+
+  // Update groupBy queries in addition to regular queries
+  triggerUpdateGroupByQueriesOptimisticEffect({
+    cache,
+    objectMetadataItem,
+    operation: 'create',
+    records: recordsToCreate,
+    shouldMatchRootQueryFilter,
   });
 };

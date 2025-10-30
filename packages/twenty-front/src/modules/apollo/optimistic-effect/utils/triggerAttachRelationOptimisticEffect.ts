@@ -2,6 +2,7 @@ import { type ApolloCache, type StoreObject } from '@apollo/client';
 
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { type RecordGqlRefEdge } from '@/object-record/cache/types/RecordGqlRefEdge';
+import { getEdgeTypename } from '@/object-record/cache/utils/getEdgeTypename';
 import { getRecordFromCache } from '@/object-record/cache/utils/getRecordFromCache';
 import { getRecordFromRecordNode } from '@/object-record/cache/utils/getRecordFromRecordNode';
 import { isObjectRecordConnectionWithRefs } from '@/object-record/cache/utils/isObjectRecordConnectionWithRefs';
@@ -78,7 +79,7 @@ export const triggerAttachRelationOptimisticEffect = ({
           const nextEdges: RecordGqlRefEdge[] = [
             ...targetRecordFieldValue.edges,
             {
-              __typename: `${sourceRecordTypeName}Edge`,
+              __typename: getEdgeTypename(sourceObjectNameSingular),
               node: sourceRecordReference,
               cursor: '',
             },

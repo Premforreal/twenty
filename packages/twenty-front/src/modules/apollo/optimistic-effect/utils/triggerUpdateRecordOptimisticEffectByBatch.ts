@@ -1,8 +1,10 @@
 import { type ApolloCache, type StoreObject } from '@apollo/client';
 
 import { sortCachedObjectEdges } from '@/apollo/optimistic-effect/utils/sortCachedObjectEdges';
+import { triggerUpdateGroupByQueriesOptimisticEffect } from '@/apollo/optimistic-effect/utils/triggerUpdateGroupByQueriesOptimisticEffect';
 import { triggerUpdateRelationsOptimisticEffect } from '@/apollo/optimistic-effect/utils/triggerUpdateRelationsOptimisticEffect';
 import { type CachedObjectRecordQueryVariables } from '@/apollo/types/CachedObjectRecordQueryVariables';
+import { encodeCursor } from '@/apollo/utils/encodeCursor';
 import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
 import { type RecordGqlRefEdge } from '@/object-record/cache/types/RecordGqlRefEdge';
 import { getEdgeTypename } from '@/object-record/cache/utils/getEdgeTypename';
@@ -105,11 +107,12 @@ export const triggerUpdateRecordOptimisticEffectByBatch = ({
             const updatedRecordNodeReference = toReference(updatedRecord);
 
             if (isDefined(updatedRecordNodeReference)) {
-              rootQueryNextEdges.push({
+              const edge = {
                 __typename: getEdgeTypename(objectMetadataItem.nameSingular),
                 node: updatedRecordNodeReference,
-                cursor: '',
-              });
+                cursor: encodeCursor(updatedRecord),
+              };
+              rootQueryNextEdges.push(edge);
             }
           }
 
@@ -140,5 +143,14 @@ export const triggerUpdateRecordOptimisticEffectByBatch = ({
         };
       },
     },
+  });
+
+  // Update groupBy queries in addition to regular queries
+  triggerUpdateGroupByQueriesOptimisticEffect({
+    cache,
+    objectMetadataItem,
+    operation: 'update',
+    records: updatedRecords,
+    shouldMatchRootQueryFilter: true,
   });
 };

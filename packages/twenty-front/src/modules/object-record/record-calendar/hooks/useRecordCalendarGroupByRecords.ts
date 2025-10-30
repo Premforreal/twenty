@@ -1,16 +1,16 @@
-import { useQuery } from '@apollo/client';
-import { useMemo } from 'react';
 import { useApolloCoreClient } from '@/object-metadata/hooks/useApolloCoreClient';
 import { hasObjectMetadataItemPositionField } from '@/object-metadata/utils/hasObjectMetadataItemPositionField';
 import { getRecordsFromRecordConnection } from '@/object-record/cache/utils/getRecordsFromRecordConnection';
-import { useGroupByRecordsQuery } from '@/object-record/hooks/useGroupByRecordsQuery';
 import { type RecordGqlOperationOrderBy } from '@/object-record/graphql/types/RecordGqlOperationOrderBy';
+import { useGroupByRecordsQuery } from '@/object-record/hooks/useGroupByRecordsQuery';
 import { useRecordCalendarContextOrThrow } from '@/object-record/record-calendar/contexts/RecordCalendarContext';
 import { useRecordCalendarQueryDateRangeFilter } from '@/object-record/record-calendar/month/hooks/useRecordCalendarQueryDateRangeFilter';
 import { useRecordsFieldVisibleGqlFields } from '@/object-record/record-field/hooks/useRecordsFieldVisibleGqlFields';
 import { recordIndexCalendarFieldMetadataIdState } from '@/object-record/record-index/states/recordIndexCalendarFieldMetadataIdState';
 import { type ObjectRecord } from '@/object-record/types/ObjectRecord';
 import { buildGroupByFieldObject } from '@/page-layout/widgets/graph/utils/buildGroupByFieldObject';
+import { useQuery } from '@apollo/client';
+import { useMemo } from 'react';
 import { useRecoilValue } from 'recoil';
 import { ObjectRecordGroupByDateGranularity } from 'twenty-shared/types';
 import { isDefined } from 'twenty-shared/utils';
@@ -74,17 +74,27 @@ export const useRecordCalendarGroupByRecords = (selectedDate: Date) => {
 
   const groupByResults = data?.[`${objectMetadataItem.namePlural}GroupBy`];
 
-  const records: ObjectRecord[] = useMemo(
-    () =>
-      !isDefined(groupByResults)
-        ? []
-        : groupByResults.flatMap((group: any) =>
-            getRecordsFromRecordConnection<ObjectRecord>({
-              recordConnection: group,
-            }),
-          ),
-    [groupByResults],
-  );
+  const records: ObjectRecord[] = useMemo(() => {
+    if (!isDefined(groupByResults)) {
+      return [];
+    }
+
+    const allRecords = groupByResults.flatMap((group: any) =>
+      getRecordsFromRecordConnection<ObjectRecord>({
+        recordConnection: group,
+      }),
+    );
+
+    // Deduplicate records by ID to prevent duplicate keys in React
+    const uniqueRecordsMap = new Map<string, ObjectRecord>();
+    allRecords.forEach((record: ObjectRecord) => {
+      if (!uniqueRecordsMap.has(record.id)) {
+        uniqueRecordsMap.set(record.id, record);
+      }
+    });
+
+    return Array.from(uniqueRecordsMap.values());
+  }, [groupByResults]);
 
   const groupByDimensionValues = useMemo(
     () =>
