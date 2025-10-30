@@ -93,4 +93,3 @@ export const useRecordCalendarQueryDateRangeFilter = (selectedDate: Date) => {
     dateRangeFilter: combinedFilter,
   };
 };
-
