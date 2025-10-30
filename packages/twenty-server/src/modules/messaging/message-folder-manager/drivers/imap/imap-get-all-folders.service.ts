@@ -55,6 +55,7 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
     mailboxList: ListResponse[],
   ): Promise<MessageFolder[]> {
     const folders: MessageFolder[] = [];
+    const pathToExternalIdMap = new Map<string, string>();
     const sentFolderPath =
       await this.imapFindSentFolderService.findSentFolder(client);
 
@@ -64,11 +65,15 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
         ? await this.getUidValidity(client, sentMailbox)
         : null;
 
+      const externalId = uidValidity
+        ? `${sentFolderPath}:${uidValidity.toString()}`
+        : sentFolderPath;
+
+      pathToExternalIdMap.set(sentFolderPath, externalId);
+
       folders.push({
-        externalId: uidValidity
-          ? `${sentFolderPath}:${uidValidity.toString()}`
-          : sentFolderPath,
-        name: sentFolderPath,
+        externalId,
+        name: sentMailbox?.name || sentFolderPath,
         isSynced: true,
         isSentFolder: true,
         parentFolderId: sentMailbox?.parentPath || null,
@@ -89,15 +94,27 @@ export class ImapGetAllFoldersService implements MessageFolderDriver {
         isInbox,
       );
 
+      const externalId = uidValidity
+        ? `${mailbox.path}:${uidValidity}`
+        : mailbox.path;
+
+      pathToExternalIdMap.set(mailbox.path, externalId);
+
       folders.push({
-        externalId: uidValidity
-          ? `${mailbox.path}:${uidValidity}`
-          : mailbox.path,
-        name: mailbox.path,
+        externalId,
+        name: mailbox.name,
         isSynced,
         isSentFolder: false,
         parentFolderId: mailbox.parentPath || null,
       });
+    }
+
+    for (const folder of folders) {
+      if (folder.parentFolderId) {
+        const parentExternalId = pathToExternalIdMap.get(folder.parentFolderId);
+
+        folder.parentFolderId = parentExternalId || null;
+      }
     }
 
     return folders;
