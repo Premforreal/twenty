@@ -10,6 +10,9 @@ import { EMPTY_FLAT_ENTITY_MAPS } from 'src/engine/metadata-modules/flat-entity/
 import { addFlatEntityToFlatEntityMapsOrThrow } from 'src/engine/metadata-modules/flat-entity/utils/add-flat-entity-to-flat-entity-maps-or-throw.util';
 import { type FlatViewMaps } from 'src/engine/metadata-modules/flat-view/types/flat-view-maps.type';
 import { fromViewEntityToFlatView } from 'src/engine/metadata-modules/flat-view/utils/from-view-entity-to-flat-view.util';
+import { ViewFieldEntity } from 'src/engine/metadata-modules/view-field/entities/view-field.entity';
+import { ViewFilterEntity } from 'src/engine/metadata-modules/view-filter/entities/view-filter.entity';
+import { ViewGroupEntity } from 'src/engine/metadata-modules/view-group/entities/view-group.entity';
 import { ViewEntity } from 'src/engine/metadata-modules/view/entities/view.entity';
 import { WorkspaceFlatMapCache } from 'src/engine/workspace-flat-map-cache/decorators/workspace-flat-map-cache.decorator';
 import { WorkspaceFlatMapCacheService } from 'src/engine/workspace-flat-map-cache/services/workspace-flat-map-cache.service';
@@ -22,6 +25,12 @@ export class WorkspaceFlatViewMapCacheService extends WorkspaceFlatMapCacheServi
     cacheStorageService: CacheStorageService,
     @InjectRepository(ViewEntity)
     private readonly viewRepository: Repository<ViewEntity>,
+    @InjectRepository(ViewFieldEntity)
+    private readonly viewFieldRepository: Repository<ViewFieldEntity>,
+    @InjectRepository(ViewFilterEntity)
+    private readonly viewFilterRepository: Repository<ViewFilterEntity>,
+    @InjectRepository(ViewGroupEntity)
+    private readonly viewGroupRepository: Repository<ViewGroupEntity>,
   ) {
     super(cacheStorageService);
   }
@@ -31,24 +40,69 @@ export class WorkspaceFlatViewMapCacheService extends WorkspaceFlatMapCacheServi
   }: {
     workspaceId: string;
   }): Promise<FlatViewMaps> {
-    const views = await this.viewRepository.find({
-      where: {
-        workspaceId,
-      },
-      select: {
-        viewFields: {
-          id: true,
-        },
-        viewFilters: {
-          id: true,
-        },
-      },
-      relations: ['viewFields', 'viewFilters', 'viewGroups'],
-      withDeleted: true,
-    });
+    // Fetch all entities for workspace in parallel
+    const [views, viewFields, viewFilters, viewGroups] = await Promise.all([
+      this.viewRepository.find({
+        where: { workspaceId },
+        withDeleted: true,
+      }),
+      this.viewFieldRepository.find({
+        where: { workspaceId },
+        select: ['id', 'viewId'],
+        withDeleted: true,
+      }),
+      this.viewFilterRepository.find({
+        where: { workspaceId },
+        select: ['id', 'viewId'],
+        withDeleted: true,
+      }),
+      this.viewGroupRepository.find({
+        where: { workspaceId },
+        select: ['id', 'viewId'],
+        withDeleted: true,
+      }),
+    ]);
 
+    if (views.length === 0) {
+      return EMPTY_FLAT_ENTITY_MAPS;
+    }
+
+    // Build maps of viewId -> related IDs
+    const viewFieldsByViewId = new Map<string, { id: string }[]>();
+    const viewFiltersByViewId = new Map<string, { id: string }[]>();
+    const viewGroupsByViewId = new Map<string, { id: string }[]>();
+
+    for (const viewField of viewFields) {
+      if (!viewFieldsByViewId.has(viewField.viewId)) {
+        viewFieldsByViewId.set(viewField.viewId, []);
+      }
+      viewFieldsByViewId.get(viewField.viewId)!.push({ id: viewField.id });
+    }
+
+    for (const viewFilter of viewFilters) {
+      if (!viewFiltersByViewId.has(viewFilter.viewId)) {
+        viewFiltersByViewId.set(viewFilter.viewId, []);
+      }
+      viewFiltersByViewId.get(viewFilter.viewId)!.push({ id: viewFilter.id });
+    }
+
+    for (const viewGroup of viewGroups) {
+      if (!viewGroupsByViewId.has(viewGroup.viewId)) {
+        viewGroupsByViewId.set(viewGroup.viewId, []);
+      }
+      viewGroupsByViewId.get(viewGroup.viewId)!.push({ id: viewGroup.id });
+    }
+
+    // Build view entities with relations
     return views.reduce((flatViewMaps, viewEntity) => {
-      const flatView = fromViewEntityToFlatView(viewEntity);
+      const viewEntityWithRelations = {
+        ...viewEntity,
+        viewFields: viewFieldsByViewId.get(viewEntity.id) || [],
+        viewFilters: viewFiltersByViewId.get(viewEntity.id) || [],
+        viewGroups: viewGroupsByViewId.get(viewEntity.id) || [],
+      };
+
+      const flatView = fromViewEntityToFlatView(viewEntityWithRelations as any);
 
       return addFlatEntityToFlatEntityMapsOrThrow({
         flatEntity: flatView,
