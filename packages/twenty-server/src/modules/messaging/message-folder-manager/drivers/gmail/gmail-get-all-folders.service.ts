@@ -53,9 +53,15 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
 
       const folders: MessageFolder[] = [];
 
-      const AllLabelNames = new Set(
-        labels.filter((label) => label.name).map((label) => label.name!),
-      );
+      const labelNameToIdMap = new Map<string, string>();
+
+      for (const label of labels) {
+        if (!label.name || !label.id) {
+          continue;
+        }
+
+        labelNameToIdMap.set(label.name, label.id);
+      }
 
       for (const label of labels) {
         if (!label.name || !label.id) {
@@ -63,13 +69,18 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
         }
 
         const isSentFolder = label.id === 'SENT';
+        const folderName = this.extractFolderName(label.name);
+        const parentFolderId = this.getParentFolderId(
+          label.name,
+          labelNameToIdMap,
+        );
 
         folders.push({
           externalId: label.id,
-          name: label.name,
+          name: folderName,
           isSynced: this.isSyncedByDefault(label.id),
           isSentFolder,
-          parentFolderId: this.getParentFolderId(label.name, AllLabelNames),
+          parentFolderId,
         });
       }
 
@@ -90,13 +101,21 @@ export class GmailGetAllFoldersService implements MessageFolderDriver {
 
   private getParentFolderId(
     labelName: string,
-    existingLabelNames: Set<string>,
+    labelNameToIdMap: Map<string, string>,
   ): string | null {
     if (!labelName.includes('/')) {
       return null;
     }
     const parentName = labelName.substring(0, labelName.lastIndexOf('/'));
 
-    return existingLabelNames.has(parentName) ? parentName : null;
+    return labelNameToIdMap.get(parentName) || null;
+  }
+
+  private extractFolderName(labelName: string): string {
+    if (!labelName.includes('/')) {
+      return labelName;
+    }
+
+    return labelName.substring(labelName.lastIndexOf('/') + 1);
   }
 }
