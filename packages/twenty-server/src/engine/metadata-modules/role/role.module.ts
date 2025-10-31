@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ApiKeyModule } from 'src/engine/core-modules/api-key/api-key.module';
@@ -23,7 +23,7 @@ import { WorkspacePermissionsCacheModule } from 'src/engine/metadata-modules/wor
     TypeOrmModule.forFeature([UserWorkspaceEntity, WorkspaceEntity]),
     UserRoleModule,
     AgentRoleModule,
-    ApiKeyModule,
+    forwardRef(() => ApiKeyModule),
     PermissionsModule,
     UserWorkspaceModule,
     ObjectPermissionModule,

@@ -21,13 +21,16 @@ import { PublicDomainEntity } from 'src/engine/core-modules/public-domain/public
 import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
 import { UserWorkspaceModule } from 'src/engine/core-modules/user-workspace/user-workspace.module';
 import { UserEntity } from 'src/engine/core-modules/user/user.entity';
+import { WorkspaceController } from 'src/engine/core-modules/workspace/controllers/workspace.controller';
 import { CheckCustomDomainValidRecordsCronCommand } from 'src/engine/core-modules/workspace/crons/commands/check-custom-domain-valid-records.cron.command';
 import { CheckCustomDomainValidRecordsCronJob } from 'src/engine/core-modules/workspace/crons/jobs/check-custom-domain-valid-records.cron.job';
+import { WorkspaceCreationService } from 'src/engine/core-modules/workspace/services/workspace-creation.service';
 import { WorkspaceService } from 'src/engine/core-modules/workspace/services/workspace.service';
 import { WorkspaceWorkspaceMemberListener } from 'src/engine/core-modules/workspace/workspace-workspace-member.listener';
 import { workspaceAutoResolverOpts } from 'src/engine/core-modules/workspace/workspace.auto-resolver-opts';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
 import { WorkspaceResolver } from 'src/engine/core-modules/workspace/workspace.resolver';
+import { UserAuthGuard } from 'src/engine/guards/user-auth.guard';
 import { AgentModule } from 'src/engine/metadata-modules/agent/agent.module';
 import { DataSourceModule } from 'src/engine/metadata-modules/data-source/data-source.module';
 import { WorkspaceManyOrAllFlatEntityMapsCacheModule } from 'src/engine/metadata-modules/flat-entity/services/workspace-many-or-all-flat-entity-maps-cache.module';
@@ -81,9 +84,13 @@ import { WorkspaceManagerModule } from 'src/engine/workspace-manager/workspace-m
   providers: [
     WorkspaceResolver,
     WorkspaceService,
+    WorkspaceCreationService,
     WorkspaceWorkspaceMemberListener,
     CheckCustomDomainValidRecordsCronCommand,
     CheckCustomDomainValidRecordsCronJob,
+    WorkspaceController,
+    UserAuthGuard,
   ],
+  controllers: [WorkspaceController],
 })
 export class WorkspaceModule {}

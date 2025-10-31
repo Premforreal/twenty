@@ -1,8 +1,8 @@
 import {
-  type ArgumentsHost,
-  Catch,
-  type ExceptionFilter,
-  HttpException,
+    type ArgumentsHost,
+    Catch,
+    type ExceptionFilter,
+    HttpException,
 } from '@nestjs/common';
 
 import { type Response } from 'express';
@@ -16,6 +16,8 @@ export class RestApiExceptionFilter implements ExceptionFilter {
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
+    console.group('🚨 RestApiExceptionFilter caught exception:', exception);
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 

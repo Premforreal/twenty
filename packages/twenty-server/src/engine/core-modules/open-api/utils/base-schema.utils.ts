@@ -13,7 +13,7 @@ export const baseSchema = (
     openapi: '3.1.1',
     info: {
       title: 'Twenty Api',
-      description: `Use this page to explore and call the **REST API**. 
+      description: `Use this page to explore and call the **REST API**.
 
 ## Authentication
 
@@ -157,6 +157,115 @@ Notes:
       description: 'Find out more about **Twenty**',
       url: 'https://twenty.com',
     },
-    paths: { [`/open-api/${schemaName}`]: computeOpenApiPath(serverUrl) },
+    paths: {
+      [`/open-api/${schemaName}`]: computeOpenApiPath(serverUrl),
+      '/users/signup': {
+        post: {
+          tags: ['users'],
+          summary: 'Sign up a new user',
+          operationId: 'signUpUser',
+          security: [], // No authentication required for signup
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['email', 'password'],
+                  properties: {
+                    email: {
+                      type: 'string',
+                      format: 'email',
+                      description: 'User email address',
+                    },
+                    password: {
+                      type: 'string',
+                      minLength: 8,
+                      description: 'User password',
+                    },
+                    captchaToken: {
+                      type: 'string',
+                      description: 'Captcha token for bot protection',
+                    },
+                    locale: {
+                      type: 'string',
+                      description: 'User locale (e.g., "en", "fr")',
+                    },
+                    verifyEmailRedirectPath: {
+                      type: 'string',
+                      description: 'Redirect path after email verification',
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '201': {
+              description: 'User created successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      user: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          email: { type: 'string', format: 'email' },
+                        },
+                      },
+                      availableWorkspaces: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            loginToken: {
+                              type: 'object',
+                              properties: {
+                                token: { type: 'string' },
+                                expiresAt: {
+                                  type: 'string',
+                                  format: 'date-time',
+                                },
+                              },
+                            },
+                            subdomain: { type: 'string' },
+                            displayName: { type: 'string' },
+                          },
+                        },
+                      },
+                      tokens: {
+                        type: 'object',
+                        properties: {
+                          accessOrWorkspaceAgnosticToken: { type: 'string' },
+                          refreshToken: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '400': {
+              description: 'Bad request',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      statusCode: { type: 'number' },
+                      messages: { type: 'array', items: { type: 'string' } },
+                      error: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   };
 };

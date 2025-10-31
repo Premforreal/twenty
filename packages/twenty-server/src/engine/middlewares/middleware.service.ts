@@ -4,10 +4,17 @@ import { type Request, type Response } from 'express';
 import { type APP_LOCALES, SOURCE_LOCALE } from 'twenty-shared/translations';
 import { isDefined } from 'twenty-shared/utils';
 
-import { AuthException } from 'src/engine/core-modules/auth/auth.exception';
+import {
+  AuthException,
+  AuthExceptionCode,
+} from 'src/engine/core-modules/auth/auth.exception';
 import { AuthGraphqlApiExceptionFilter } from 'src/engine/core-modules/auth/filters/auth-graphql-api-exception.filter';
 import { AccessTokenService } from 'src/engine/core-modules/auth/token/services/access-token.service';
-import { type AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { WorkspaceAgnosticTokenService } from 'src/engine/core-modules/auth/token/services/workspace-agnostic-token.service';
+import {
+  type AuthContext,
+  JwtTokenTypeEnum,
+} from 'src/engine/core-modules/auth/types/auth-context.type';
 import { getAuthExceptionRestStatus } from 'src/engine/core-modules/auth/utils/get-auth-exception-rest-status.util';
 import { ExceptionHandlerService } from 'src/engine/core-modules/exception-handler/exception-handler.service';
 import { ErrorCode } from 'src/engine/core-modules/graphql/utils/graphql-errors.util';
@@ -26,6 +33,7 @@ import { type CustomException } from 'src/utils/custom-exception';
 export class MiddlewareService {
   constructor(
     private readonly accessTokenService: AccessTokenService,
+    private readonly workspaceAgnosticTokenService: WorkspaceAgnosticTokenService,
     private readonly workspaceStorageCacheService: WorkspaceCacheStorageService,
     private readonly workspaceMetadataCacheService: WorkspaceMetadataCacheService,
     private readonly dataSourceService: DataSourceService,
@@ -99,7 +107,71 @@ export class MiddlewareService {
   }
 
   public async hydrateRestRequest(request: Request) {
-    const data = await this.accessTokenService.validateTokenByRequest(request);
+    console.log('🔍 Hydrating REST request for path:', request.path);
+    console.log(
+      '🔍 Request headers:',
+      request.headers.authorization
+        ? 'Authorization header present'
+        : 'No authorization header',
+    );
+
+    const token = this.jwtWrapperService.extractJwtFromRequest()(request);
+
+    console.log(
+      '🔍 Extracted token:',
+      token ? 'Token present' : 'No token extracted',
+    );
+
+    if (!token) {
+      console.log('❌ No token found, throwing auth exception');
+      throw new AuthException(
+        'Missing authentication token',
+        AuthExceptionCode.FORBIDDEN_EXCEPTION,
+      );
+    }
+
+    // Try to decode the token to determine its type
+    let decodedToken;
+
+    try {
+      decodedToken = this.jwtWrapperService.decode(token);
+      console.log('✅ Token decoded successfully, type:', decodedToken.type);
+    } catch {
+      console.log('❌ Token decode failed');
+      throw new AuthException(
+        'Invalid token format',
+        AuthExceptionCode.FORBIDDEN_EXCEPTION,
+      );
+    }
+
+    let data: AuthContext;
+
+    // Try workspace-agnostic token validation first
+    if (decodedToken.type === JwtTokenTypeEnum.WORKSPACE_AGNOSTIC) {
+      console.log('🔄 Trying workspace-agnostic token validation');
+      try {
+        data = await this.workspaceAgnosticTokenService.validateToken(token);
+        console.log(
+          '✅ Workspace-agnostic token validated, user:',
+          data.user?.id,
+        );
+      } catch {
+        console.log(
+          '⚠️ Workspace-agnostic validation failed, trying access token validation',
+        );
+        data = await this.accessTokenService.validateToken(token);
+        console.log('✅ Access token validated, user:', data.user?.id);
+      }
+    } else {
+      console.log(
+        '🔄 Token type is not workspace-agnostic, using access token validation',
+      );
+      // For access tokens or other types, use access token service
+      data = await this.accessTokenService.validateToken(token);
+      console.log('✅ Access token validated, user:', data.user?.id);
+    }
+
+    console.log('🔄 Setting up workspace metadata');
     const metadataVersion = data.workspace
       ? await this.workspaceStorageCacheService.getMetadataVersion(
           data.workspace.id,
@@ -113,17 +185,26 @@ export class MiddlewareService {
       throw new Error('Metadata cache version not found');
     }
 
-    const dataSourcesMetadata = data.workspace
-      ? await this.dataSourceService.getDataSourcesMetadataFromWorkspaceId(
+    // Skip data source check for workspace creation (when no workspace exists yet)
+    if (data.workspace) {
+      console.log('🔄 Checking data sources for workspace:', data.workspace.id);
+      const dataSourcesMetadata =
+        await this.dataSourceService.getDataSourcesMetadataFromWorkspaceId(
           data.workspace.id,
-        )
-      : undefined;
+        );
 
-    if (!dataSourcesMetadata || dataSourcesMetadata.length === 0) {
-      throw new Error('No data sources found');
+      if (!dataSourcesMetadata || dataSourcesMetadata.length === 0) {
+        console.log('❌ No data sources found for workspace');
+        throw new Error('No data sources found');
+      }
+      console.log('✅ Data sources found');
+    } else {
+      console.log('ℹ️ No workspace in token (expected for workspace creation)');
     }
 
+    console.log('🔄 Binding data to request object');
     this.bindDataToRequestObject(data, request, metadataVersion);
+    console.log('✅ Request hydration complete, user set:', !!request.user);
   }
 
   public async hydrateGraphqlRequest(request: Request) {

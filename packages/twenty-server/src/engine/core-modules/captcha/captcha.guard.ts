@@ -23,9 +23,20 @@ export class CaptchaGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const ctx = GqlExecutionContext.create(context);
+    let token: string | undefined;
 
-    const { captchaToken: token } = ctx.getArgs();
+    // Check if this is a GraphQL context
+    try {
+      const ctx = GqlExecutionContext.create(context);
+      const args = ctx.getArgs();
+
+      token = args?.captchaToken;
+    } catch {
+      // Not a GraphQL context, try REST context
+      const request = context.switchToHttp().getRequest();
+
+      token = request?.body?.captchaToken;
+    }
 
     const result = await this.captchaService.validate(token || '');
 

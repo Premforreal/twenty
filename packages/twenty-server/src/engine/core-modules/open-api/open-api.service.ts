@@ -3,9 +3,9 @@ import { Injectable } from '@nestjs/common';
 import { type Request } from 'express';
 import { type OpenAPIV3_1 } from 'openapi-types';
 import {
-  assertIsDefinedOrThrow,
-  capitalize,
-  isDefined,
+    assertIsDefinedOrThrow,
+    capitalize,
+    isDefined,
 } from 'twenty-shared/utils';
 
 import { DatabaseEventAction } from 'src/engine/api/graphql/graphql-query-runner/enums/database-event-action';
@@ -14,35 +14,35 @@ import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/featu
 import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
 import { baseSchema } from 'src/engine/core-modules/open-api/utils/base-schema.utils';
 import {
-  computeMetadataSchemaComponents,
-  computeParameterComponents,
-  computeSchemaComponents,
+    computeMetadataSchemaComponents,
+    computeParameterComponents,
+    computeSchemaComponents,
 } from 'src/engine/core-modules/open-api/utils/components.utils';
 import { computeSchemaTags } from 'src/engine/core-modules/open-api/utils/compute-schema-tags.utils';
 import { computeWebhooks } from 'src/engine/core-modules/open-api/utils/computeWebhooks.utils';
 import {
-  get400ErrorResponses,
-  get401ErrorResponses,
+    get400ErrorResponses,
+    get401ErrorResponses,
 } from 'src/engine/core-modules/open-api/utils/get-error-responses.utils';
 import {
-  computeBatchPath,
-  computeDuplicatesResultPath,
-  computeManyResultPath,
-  computeMergeManyResultPath,
-  computeRestoreManyResultPath,
-  computeRestoreOneResultPath,
-  computeSingleResultPath,
+    computeBatchPath,
+    computeDuplicatesResultPath,
+    computeManyResultPath,
+    computeMergeManyResultPath,
+    computeRestoreManyResultPath,
+    computeRestoreOneResultPath,
+    computeSingleResultPath,
 } from 'src/engine/core-modules/open-api/utils/path.utils';
 import {
-  getRequestBody,
-  getUpdateRequestBody,
+    getRequestBody,
+    getUpdateRequestBody,
 } from 'src/engine/core-modules/open-api/utils/request-body.utils';
 import {
-  getCreateOneResponse201,
-  getDeleteResponse200,
-  getFindManyResponse200,
-  getFindOneResponse200,
-  getUpdateOneResponse200,
+    getCreateOneResponse201,
+    getDeleteResponse200,
+    getFindManyResponse200,
+    getFindOneResponse200,
+    getUpdateOneResponse200,
 } from 'src/engine/core-modules/open-api/utils/responses.utils';
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
 import { WorkspaceEntity } from 'src/engine/core-modules/workspace/workspace.entity';
@@ -248,6 +248,10 @@ export class OpenApiService {
         nameSingular: 'viewFilterGroup',
         namePlural: 'viewFilterGroups',
       },
+      {
+        nameSingular: 'workspace',
+        namePlural: 'workspaces',
+      },
       ...(isPageLayoutEnabled
         ? [
             {
@@ -267,68 +271,106 @@ export class OpenApiService {
     ];
 
     schema.paths = metadata.reduce((path, item) => {
-      path[`/${item.namePlural}`] = {
-        get: {
-          tags: [item.namePlural],
-          summary: `Find Many ${item.namePlural}`,
-          parameters: [
-            { $ref: '#/components/parameters/limit' },
-            { $ref: '#/components/parameters/startingAfter' },
-            { $ref: '#/components/parameters/endingBefore' },
-          ],
-          responses: {
-            '200': getFindManyResponse200(item, true),
-            '400': { $ref: '#/components/responses/400' },
-            '401': { $ref: '#/components/responses/401' },
+      if (item.nameSingular === 'workspace') {
+        // Special handling for workspace creation
+        path[`/${item.namePlural}`] = {
+          post: {
+            tags: [item.namePlural],
+            summary: `Create One ${item.nameSingular}`,
+            operationId: `createOne${capitalize(item.nameSingular)}`,
+            responses: {
+              '201': {
+                description: 'Workspace created successfully',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        workspace: {
+                          $ref: `#/components/schemas/${capitalize(item.nameSingular)}ForResponse`,
+                        },
+                        user: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            email: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              '400': { $ref: '#/components/responses/400' },
+              '401': { $ref: '#/components/responses/401' },
+            },
           },
-        },
-        post: {
-          tags: [item.namePlural],
-          summary: `Create One ${item.nameSingular}`,
-          operationId: `createOne${capitalize(item.nameSingular)}`,
-          requestBody: getRequestBody(capitalize(item.nameSingular)),
-          responses: {
-            '200': getCreateOneResponse201(item, true),
-            '400': { $ref: '#/components/responses/400' },
-            '401': { $ref: '#/components/responses/401' },
+        } as OpenAPIV3_1.PathItemObject;
+      } else {
+        // Standard CRUD operations for other metadata items
+        path[`/${item.namePlural}`] = {
+          get: {
+            tags: [item.namePlural],
+            summary: `Find Many ${item.namePlural}`,
+            parameters: [
+              { $ref: '#/components/parameters/limit' },
+              { $ref: '#/components/parameters/startingAfter' },
+              { $ref: '#/components/parameters/endingBefore' },
+            ],
+            responses: {
+              '200': getFindManyResponse200(item, true),
+              '400': { $ref: '#/components/responses/400' },
+              '401': { $ref: '#/components/responses/401' },
+            },
           },
-        },
-      } as OpenAPIV3_1.PathItemObject;
-      path[`/${item.namePlural}/{id}`] = {
-        delete: {
-          tags: [item.namePlural],
-          summary: `Delete One ${item.nameSingular}`,
-          operationId: `deleteOne${capitalize(item.nameSingular)}`,
-          parameters: [{ $ref: '#/components/parameters/idPath' }],
-          responses: {
-            '200': getDeleteResponse200(item, true),
-            '400': { $ref: '#/components/responses/400' },
-            '401': { $ref: '#/components/responses/401' },
+          post: {
+            tags: [item.namePlural],
+            summary: `Create One ${item.nameSingular}`,
+            operationId: `createOne${capitalize(item.nameSingular)}`,
+            requestBody: getRequestBody(capitalize(item.nameSingular)),
+            responses: {
+              '200': getCreateOneResponse201(item, true),
+              '400': { $ref: '#/components/responses/400' },
+              '401': { $ref: '#/components/responses/401' },
+            },
           },
-        },
-        get: {
-          tags: [item.namePlural],
-          summary: `Find One ${item.nameSingular}`,
-          parameters: [{ $ref: '#/components/parameters/idPath' }],
-          responses: {
-            '200': getFindOneResponse200(item),
-            '400': { $ref: '#/components/responses/400' },
-            '401': { $ref: '#/components/responses/401' },
+        } as OpenAPIV3_1.PathItemObject;
+        path[`/${item.namePlural}/{id}`] = {
+          delete: {
+            tags: [item.namePlural],
+            summary: `Delete One ${item.nameSingular}`,
+            operationId: `deleteOne${capitalize(item.nameSingular)}`,
+            parameters: [{ $ref: '#/components/parameters/idPath' }],
+            responses: {
+              '200': getDeleteResponse200(item, true),
+              '400': { $ref: '#/components/responses/400' },
+              '401': { $ref: '#/components/responses/401' },
+            },
           },
-        },
-        patch: {
-          tags: [item.namePlural],
-          summary: `Update One ${item.nameSingular}`,
-          operationId: `updateOne${capitalize(item.nameSingular)}`,
-          parameters: [{ $ref: '#/components/parameters/idPath' }],
-          requestBody: getUpdateRequestBody(capitalize(item.nameSingular)),
-          responses: {
-            '200': getUpdateOneResponse200(item, true),
-            '400': { $ref: '#/components/responses/400' },
-            '401': { $ref: '#/components/responses/401' },
+          get: {
+            tags: [item.namePlural],
+            summary: `Find One ${item.nameSingular}`,
+            parameters: [{ $ref: '#/components/parameters/idPath' }],
+            responses: {
+              '200': getFindOneResponse200(item),
+              '400': { $ref: '#/components/responses/400' },
+              '401': { $ref: '#/components/responses/401' },
+            },
           },
-        },
-      } as OpenAPIV3_1.PathItemObject;
+          patch: {
+            tags: [item.namePlural],
+            summary: `Update One ${item.nameSingular}`,
+            operationId: `updateOne${capitalize(item.nameSingular)}`,
+            parameters: [{ $ref: '#/components/parameters/idPath' }],
+            requestBody: getUpdateRequestBody(capitalize(item.nameSingular)),
+            responses: {
+              '200': getUpdateOneResponse200(item, true),
+              '400': { $ref: '#/components/responses/400' },
+              '401': { $ref: '#/components/responses/401' },
+            },
+          },
+        } as OpenAPIV3_1.PathItemObject;
+      }
 
       return path;
     }, schema.paths as OpenAPIV3_1.PathsObject);

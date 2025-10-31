@@ -7,15 +7,15 @@ import { RelationType } from 'src/engine/metadata-modules/field-metadata/interfa
 
 import { generateRandomFieldValue } from 'src/engine/core-modules/open-api/utils/generate-random-field-value.util';
 import {
-  computeDepthParameters,
-  computeEndingBeforeParameters,
-  computeFilterParameters,
-  computeIdPathParameter,
-  computeLimitParameters,
-  computeOrderByParameters,
-  computeSoftDeleteParameters,
-  computeStartingAfterParameters,
-  computeUpsertParameters,
+    computeDepthParameters,
+    computeEndingBeforeParameters,
+    computeFilterParameters,
+    computeIdPathParameter,
+    computeLimitParameters,
+    computeOrderByParameters,
+    computeSoftDeleteParameters,
+    computeStartingAfterParameters,
+    computeUpsertParameters,
 } from 'src/engine/core-modules/open-api/utils/parameters.utils';
 import { type ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
 import { convertObjectMetadataToSchemaProperties } from 'src/engine/utils/convert-object-metadata-to-schema-properties.util';
@@ -1208,6 +1208,62 @@ export const computeMetadataSchemaComponents = (
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
               deletedAt: { type: 'string', format: 'date-time' },
+            },
+          };
+          schemas[`${capitalize(item.namePlural)}ForResponse`] = {
+            type: 'array',
+            description: `A list of ${item.namePlural}`,
+            items: {
+              $ref: `#/components/schemas/${capitalize(item.nameSingular)}ForResponse`,
+            },
+          };
+
+          return schemas;
+        }
+        case 'workspace': {
+          schemas[`${capitalize(item.nameSingular)}`] = {
+            type: 'object',
+            description: `A workspace`,
+            properties: {},
+          };
+          schemas[`${capitalize(item.namePlural)}`] = {
+            type: 'array',
+            description: `A list of ${item.namePlural}`,
+            items: {
+              $ref: `#/components/schemas/${capitalize(item.nameSingular)}`,
+            },
+          };
+          schemas[`${capitalize(item.nameSingular)}ForUpdate`] = {
+            type: 'object',
+            description: `A workspace for update`,
+            properties: {
+              displayName: { type: 'string' },
+              logo: { type: 'string' },
+              allowImpersonation: { type: 'boolean' },
+              featureFlags: {
+                type: 'object',
+                description: 'Feature flags configuration',
+              },
+            },
+          };
+          schemas[`${capitalize(item.nameSingular)}ForResponse`] = {
+            type: 'object',
+            description: `A workspace`,
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              displayName: { type: 'string' },
+              subdomain: { type: 'string' },
+              logo: { type: 'string' },
+              allowImpersonation: { type: 'boolean' },
+              workspaceUrls: {
+                type: 'object',
+                properties: {
+                  subdomainUrl: { type: 'string' },
+                  customUrl: { type: 'string' },
+                },
+              },
+              createdAt: { type: 'string', format: 'date-time' },
+              updatedAt: { type: 'string', format: 'date-time' },
             },
           };
           schemas[`${capitalize(item.namePlural)}ForResponse`] = {
